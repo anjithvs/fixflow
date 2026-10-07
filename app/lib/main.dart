@@ -1,99 +1,48 @@
-   import 'dart:convert';
+import 'package:flutter/material.dart';
 
-   import 'package:flutter/material.dart';
-   import 'package:http/http.dart' as http;
+import 'auth_service.dart';
+import 'home_screen.dart';
+import 'login_screen.dart';
 
-   // 10.0.2.2 is how the Android emulator reaches YOUR computer.
-   const String baseUrl = 'http://10.0.2.2:8080';
+void main() {
+  runApp(const FixFlowApp());
+}
 
-   void main() {
-     runApp(const FixFlowApp());
-   }
+class FixFlowApp extends StatelessWidget {
+  const FixFlowApp({super.key});
 
-   class FixFlowApp extends StatelessWidget {
-     const FixFlowApp({super.key});
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'FixFlow',
+      theme: ThemeData(colorSchemeSeed: Colors.indigo, useMaterial3: true),
+      home: const StartupGate(),
+    );
+  }
+}
 
-     @override
-     Widget build(BuildContext context) {
-       return MaterialApp(
-         title: 'FixFlow',
-         theme: ThemeData(colorSchemeSeed: Colors.indigo, useMaterial3: true),
-         home: const HealthScreen(),
-       );
-     }
-   }
+/// Decides which screen to show first: home (if already logged in) or login.
+class StartupGate extends StatefulWidget {
+  const StartupGate({super.key});
 
-   class HealthScreen extends StatefulWidget {
-     const HealthScreen({super.key});
+  @override
+  State<StartupGate> createState() => _StartupGateState();
+}
 
-     @override
-     State<HealthScreen> createState() => _HealthScreenState();
-   }
+class _StartupGateState extends State<StartupGate> {
+  late final Future<UserSession?> _sessionFuture = authService.restoreSession();
 
-   class _HealthScreenState extends State<HealthScreen> {
-     bool _loading = false;
-     String _message = 'Press the button to check the backend';
-     bool _isError = false;
-
-     Future<void> _checkBackend() async {
-       setState(() {
-         _loading = true;
-         _isError = false;
-       });
-
-       try {
-         final response = await http
-             .get(Uri.parse('$baseUrl/actuator/health'))
-             .timeout(const Duration(seconds: 5));
-
-         final data = jsonDecode(response.body);
-         setState(() {
-           _message = 'Backend status: ${data['status']}';
-         });
-       } catch (e) {
-         setState(() {
-           _isError = true;
-           _message = 'Cannot reach the backend. Is it running?';
-         });
-       } finally {
-         setState(() {
-           _loading = false;
-         });
-       }
-     }
-
-     @override
-     Widget build(BuildContext context) {
-       return Scaffold(
-         appBar: AppBar(title: const Text('FixFlow')),
-         body: Center(
-           child: Padding(
-             padding: const EdgeInsets.all(24),
-             child: Column(
-               mainAxisAlignment: MainAxisAlignment.center,
-               children: [
-                 Icon(
-                   _isError ? Icons.error_outline : Icons.check_circle_outline,
-                   size: 72,
-                   color: _isError ? Colors.red : Colors.green,
-                 ),
-                 const SizedBox(height: 16),
-                 Text(
-                   _message,
-                   textAlign: TextAlign.center,
-                   style: const TextStyle(fontSize: 18),
-                 ),
-                 const SizedBox(height: 24),
-                 _loading
-                     ? const CircularProgressIndicator()
-                     : FilledButton(
-                         onPressed: _checkBackend,
-                         child: const Text('Check backend'),
-                       ),
-               ],
-             ),
-           ),
-         ),
-       );
-     }
-   }
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<UserSession?>(
+      future: _sessionFuture,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState != ConnectionState.done) {
+          return const Scaffold(body: Center(child: CircularProgressIndicator()));
+        }
+        final session = snapshot.data;
+        return session == null ? const LoginScreen() : HomeScreen(session: session);
+      },
+    );
+  }
+}
