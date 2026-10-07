@@ -14,3 +14,13 @@
        web:
          exposure:
            include: health
+
+   server:
+     error:
+       include-message: always
+
+   app:
+     jwt:
+       # Development-only secret. We'll move it to a safe place before deploying.
+       secret: ${JWT_SECRET:dev-only-secret-key-change-me-in-production-0123456789}
+       expiration-minutes: 60
