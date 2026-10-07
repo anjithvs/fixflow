@@ -1,0 +1,16 @@
+   spring:
+     application:
+       name: backend
+     datasource:
+       url: jdbc:postgresql://localhost:5432/fixflow
+       username: fixflow
+       password: fixflow_dev
+     jpa:
+       hibernate:
+         ddl-auto: validate
+
+   management:
+     endpoints:
+       web:
+         exposure:
+           include: health
